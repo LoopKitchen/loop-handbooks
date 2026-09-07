@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/favicon.ico">
+<!-- ══ MERMAID (verbatim from billing handbook) ══
+     Must load in <head>, BEFORE the body content, with startOnLoad:true.
+     The pagination script at the bottom WAITS for mermaid to stamp every
+     <pre class="mermaid"> with data-processed before it hides pages —
+     a diagram born inside display:none renders at zero size. Keep this
+     script order exactly as-is. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: "neutral" });</script>
+</head>
+<body>
+<title>Import Engine Handbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&family=Patrick+Hand&display=swap">
+<!-- ══ STYLE BLOCK — copied VERBATIM from docs/billing/index.html. Do not edit
+     when cloning a new handbook; all theming is CSS-variable driven. ══ -->
+<style>
+  :root {
+    --ground: #fafbfb;
+    --paper: #ffffff;
+    --paper-2: #eff4f4;
+    --ink: #13262b;
+    --ink-2: #3d5257;
+    --muted: #64777b;
+    --line: #d9e2e3;
+    --line-strong: #b7c8ca;
+    --accent: #196e82;
+    --accent-ink: #ffffff;
+    --accent-soft: #e2eef1;
+    --amber: #a86a12;
+    --amber-soft: #f7ead3;
+    --red: #a83a2c;
+    --red-soft: #f6e1dd;
+    --green: #2c7a4b;
+    --green-soft: #dff0e4;
+    --code-bg: #eef3f3;
+    --add: #e2f2e7;
+    --del: #f7e3df;
+    --chg: #fdf3dd;
+    --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    --body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #101c1e;
+      --paper: #16282c;
+      --paper-2: #1c3236;
+      --ink: #e5eeef;
+      --ink-2: #b9c9cb;
+      --muted: #8ba2a5;
+      --line: #28444a;
+      --line-strong: #3a5a61;
+      --accent: #5fb9c3;
+      --accent-ink: #101c1e;
+      --accent-soft: #17363c;
+      --amber: #e2a84e;
+      --amber-soft: #37290f;
+      --red: #e28173;
+      --red-soft: #3b1e18;
+      --green: #7fc79a;
+      --green-soft: #183123;
+      --code-bg: #10201f;
+      --add: #16341f;
+      --del: #3b201a;
+      --chg: #34290f;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #101c1e;
+    --paper: #16282c;
+    --paper-2: #1c3236;
+    --ink: #e5eeef;
+    --ink-2: #b9c9cb;
+    --muted: #8ba2a5;
+    --line: #28444a;
+    --line-strong: #3a5a61;
+    --accent: #5fb9c3;
+    --accent-ink: #101c1e;
+    --accent-soft: #17363c;
+    --amber: #e2a84e;
+    --amber-soft: #37290f;
+    --red: #e28173;
+    --red-soft: #3b1e18;
+    --green: #7fc79a;
+    --green-soft: #183123;
+    --code-bg: #10201f;
+    --add: #16341f;
+    --del: #3b201a;
+    --chg: #34290f;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+  .layout { display: grid; grid-template-columns: 248px minmax(0, 1fr); max-width: 1240px; margin: 0 auto; gap: 44px; padding: 0 28px; }
+
+  /* ── sidebar ── */
+  nav.side { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; padding: 30px 0 40px; border-right: 1px solid var(--line); }
+  .brand { padding: 0 18px 18px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+  .brand .t { font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+  .brand .s { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .navgrp { margin: 0 0 18px; }
+  .navgrp .g { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); padding: 0 18px 6px; }
+  .navgrp a { display: block; padding: 4px 18px 4px 17px; font-size: 13.5px; color: var(--ink-2); text-decoration: none; border-left: 2px solid transparent; }
+  .navgrp a:hover { color: var(--ink); border-left-color: var(--line-strong); background: var(--paper-2); }
+
+  /* ── content ── */
+  main { min-width: 0; padding: 34px 0 90px; }
+  header.top { border-bottom: 1px solid var(--line); padding-bottom: 22px; margin-bottom: 40px; }
+  .eyebrow { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+  h1 { font-size: 33px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1; margin: 0 0 10px; text-wrap: balance; }
+  .lede { color: var(--ink-2); max-width: 70ch; margin: 0; font-size: 15.5px; }
+  section { margin: 0 0 56px; scroll-margin-top: 24px; }
+  h2 { font-size: 23px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 4px; text-wrap: balance; }
+  .kick { font-family: var(--mono); font-size: 11.5px; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 2px; }
+  h3 { font-size: 16.5px; font-weight: 600; margin: 26px 0 8px; }
+  p { max-width: 70ch; margin: 0 0 12px; }
+  ul, ol { max-width: 70ch; margin: 0 0 12px; padding-left: 22px; }
+  li { margin-bottom: 5px; }
+  li::marker { color: var(--muted); }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; margin: 16px 0 6px; }
+  .tile { background: var(--paper); border: 1px solid var(--line); padding: 13px 15px; }
+  .tile b { display: block; font-size: 14.5px; margin-bottom: 4px; }
+  .tile p { font-size: 13px; color: var(--ink-2); margin: 0; }
+  .tile .m { display: block; font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 7px; word-break: break-all; }
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); background: var(--paper); margin: 12px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 620px; }
+  th, td { text-align: left; vertical-align: top; padding: 8px 11px; border-bottom: 1px solid var(--line); }
+  th { font-family: var(--mono); font-weight: 500; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); background: var(--paper-2); white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  td.k { font-weight: 600; white-space: nowrap; }
+  td .mono, th .mono { font-family: var(--mono); font-size: 12px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .rail { border-left: 3px solid var(--amber); background: var(--paper); padding: 10px 14px; margin: 10px 0; max-width: 76ch; font-size: 14px; }
+  .rail b { color: var(--amber); }
+  .note { border-left: 3px solid var(--accent); background: var(--paper); padding: 10px 14px; margin: 12px 0; max-width: 76ch; font-size: 13.5px; }
+
+  .diagram { background: var(--paper); border: 1px solid var(--line); padding: 16px 16px 8px; overflow-x: auto; margin: 14px 0 4px; }
+  .diagram pre.mermaid { margin: 0; min-width: 620px; }
+  .cap { font-size: 12.5px; color: var(--muted); margin: 4px 0 14px; max-width: 78ch; }
+
+  /* ── one-pass diagram ── */
+  .op { border: 1px solid var(--line-strong); background: var(--paper); margin: 16px 0; }
+  .op-head { padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--accent-soft); }
+  .op-head .t { font-weight: 700; font-size: 15px; }
+  .op-head .m { font-family: var(--mono); font-size: 12px; color: var(--ink-2); margin-top: 3px; }
+  .op-sec { padding: 12px 16px 4px; }
+  .op-sec > .l { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .op table { min-width: 540px; font-size: 12.5px; }
+  .op td, .op th { padding: 5px 9px; font-family: var(--mono); font-size: 12px; }
+  .op .tname { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--ink-2); margin: 10px 0 4px; }
+  tr.add td { background: var(--add); }
+  tr.del td { background: var(--del); }
+  tr.chg td { background: var(--chg); }
+  .steps { counter-reset: st; list-style: none; padding: 0; max-width: none; margin: 0; }
+  .steps li { counter-increment: st; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); margin: 0; font-size: 13.5px; }
+  .steps li::before { content: counter(st); font-weight: 700; font-family: var(--mono); font-size: 13px; color: var(--accent); padding-top: 1px; }
+  .steps .cas { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .steps .cas b { color: var(--amber); font-weight: 600; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); padding: 8px 16px 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .sw { width: 12px; height: 12px; border: 1px solid var(--line-strong); display: inline-block; }
+
+  .chip { display: inline-block; font-family: var(--mono); font-size: 11px; border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+  .chip.ok { background: var(--green-soft); color: var(--green); }
+  .chip.warn { background: var(--amber-soft); color: var(--amber); }
+  .chip.bad { background: var(--red-soft); color: var(--red); }
+  .chip.info { background: var(--accent-soft); color: var(--accent); }
+
+  .raw-thumb { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); background: var(--paper); padding: 8px 12px; cursor: pointer; margin: 4px 0 14px; font-family: var(--body); color: var(--ink-2); font-size: 13px; }
+  .raw-thumb:hover { border-color: var(--accent); color: var(--accent); }
+  .raw-thumb img { height: 72px; width: auto; border: 1px solid var(--line); background: #fdfdf6; }
+  .lightbox { position: fixed; inset: 0; z-index: 50; background: rgba(10, 20, 22, 0.82); overflow: auto; padding: 28px; cursor: zoom-out; }
+  .lightbox img { display: block; margin: 0 auto; background: #fdfdf6; min-width: 1200px; max-width: none; width: 92vw; }
+  .lightbox p { text-align: center; color: #e5eeef; font-family: var(--mono); font-size: 12px; margin-top: 10px; }
+  footer { color: var(--muted); font-family: var(--mono); font-size: 12px; border-top: 1px solid var(--line); padding-top: 16px; max-width: 78ch; }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; gap: 0; }
+    nav.side { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+
+  /* ── paged mode (applied by script once diagrams have rendered) ── */
+  body.paged main section { display: none; }
+  body.paged main section.active { display: block; margin-bottom: 28px; }
+  .navgrp a.active { border-left-color: var(--accent); color: var(--accent); font-weight: 600; background: var(--paper-2); }
+  .pager { display: none; }
+  body.paged .pager { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid var(--line); padding-top: 18px; margin-bottom: 26px; }
+  .pager a { display: inline-flex; flex-direction: column; gap: 2px; text-decoration: none; border: 1px solid var(--line); padding: 10px 14px; min-width: 180px; max-width: 46%; background: var(--paper); }
+  .pager a:hover { border-color: var(--accent); }
+  .pager .dir { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .pager .pt { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .pager a.next { margin-left: auto; text-align: right; }
+</style>
+
+<div class="layout">
+<nav class="side" aria-label="Handbook contents">
+  <div class="brand">
+    <div class="t">Import Engine</div>
+    <div class="s">loop · csv imports · schema-as-code</div>
+  </div>
+
+  <div class="navgrp"><div class="g">The system</div>
+    <a href="#model">Mental model</a>
+    <a href="#datamodel">Templates &amp; data model</a>
+    <a href="#whynot">Why not CSVBox</a>
+  </div>
+  <div class="navgrp"><div class="g">Core lifecycle</div>
+    <a href="#lifecycle">Paste → check → fix → import</a>
+  </div>
+  <div class="navgrp"><div class="g">One-pass dry runs</div>
+    <a href="#onepass-stores">Import digital stores</a>
+    <a href="#onepass-franchise">Validate franchise groups</a>
+  </div>
+  <div class="navgrp"><div class="g">Deep dives</div>
+    <a href="#validator">The three-tier validator</a>
+    <a href="#options">Option sources &amp; dual acceptance</a>
+    <a href="#applypipe">The apply pipeline</a>
+    <a href="#override">applyOverride: host write paths</a>
+  </div>
+  <div class="navgrp"><div class="g">Product surfaces</div>
+    <a href="#surfaces">The dialog &amp; its 21 mounts</a>
+  </div>
+  <div class="navgrp"><div class="g">Reference</div>
+    <a href="#rails">Guard rails</a>
+    <a href="#api">API reference</a>
+    <a href="#runbook">Runbooks &amp; gotchas</a>
+    <a href="#history">Build history</a>
+  </div>
+</nav>
+
+<main>
+<header class="top">
+  <p class="eyebrow">loop · system handbook · 2026-09-08</p>
+  <h1>The Import Engine</h1>
+  <p class="lede">How Loop ingests customer CSVs: 15 typed templates declared in the repo, one three-tier validator, five server-side appliers, and one shared dialog mounted 21 times across three apps. This replaces all 20 CSVBox sheets that were in use. Every table row on these pages is a real row from dev <code>loop_core</code> (test chain 1199 · <code>acme_14</code>) or reproduced by running the shipped code; every rule is explained by the bug it prevents. Backend: <code>cloud_endpoints/import_engine/</code> (worktree <code>wt-import-engine</code>, PR backend#20638). Frontend: <code>packages/shared/src/ImportEngine/</code> (worktree <code>wt-import-engine-fe</code>, PR frontend#3937).</p>
+</header>
+
+<!-- ═══════════════════════ PAGE 1: MENTAL MODEL ═══════════════════════ -->
+<section id="model">
+  <p class="kick">The system</p>
+  <h2>Mental model</h2>
+  <p>A customer pastes or drops a CSV into a dialog. The dialog fetches the <b>template</b> for that import from the server (never cached, so the browser always renders the schema the server will validate against), checks what it can locally for instant feedback, then asks the server to <b>validate</b> all three tiers. Errors land on cells while the customer is still looking at the grid. Only when the report is clean (or the customer explicitly opts into a partial import) does <b>apply</b> run, and apply never invents a write path: it delegates each row to the endpoint that already owns the destination table.</p>
+  <div class="tiles">
+    <div class="tile"><b>Template</b><p>One declared CSV type: key, label, entity, destination, columns, rules. Versioned in the repo instead of a CSVBox dashboard sheet.</p><span class="m">ImportTemplate · import_engine/templates.py TEMPLATES (15)</span></div>
+    <div class="tile"><b>Column</b><p>One field with type, requiredness, aliases, option source, parent, default, example, hint. Its constructor rejects a ref without an option source and an enum without values.</p><span class="m">ImportColumn · schema.py:137-173</span></div>
+    <div class="tile"><b>Option source</b><p>A live, usually chain-scoped set of legal values for a ref column, materialized per tenant at validation time. Nine exist; resolvers reuse the /csv/dropdown/* SQL so there is exactly one copy.</p><span class="m">OPTION_SOURCES · option_sources.py:193-258</span></div>
+    <div class="tile"><b>Tier</b><p>Which pass a rule belongs to: CELL and ROW are pure and run in both browser and server; ENTITY needs the database and runs only server-side. ENTITY is the tier CSVBox structurally could not run.</p><span class="m">Tier · schema.py:91-94</span></div>
+    <div class="tile"><b>Upsert key</b><p>The column tuple deciding insert-vs-update, mandatory on every template. Also drives in-file duplicate detection. An empty tuple is a conscious "genuinely appends".</p><span class="m">ImportTemplate.upsert_key · schema.py:211-223</span></div>
+    <div class="tile"><b>Dual acceptance</b><p>An option source resolves one canonical value space but accepts the other spelling of the same entity: location name or id, uid or email. Normalized before anything is written.</p><span class="m">OptionSource.accepts · option_sources.py:84-92</span></div>
+    <div class="tile"><b>Machine fix (the wand)</b><p>A one-click correction attached to an error: full replacement cell content the client applies verbatim. Offered only when the server is confident.</p><span class="m">RowError.fix · validator.py:71-74</span></div>
+    <div class="tile"><b>Applier</b><p>The per-template async function that adapts validated, normalized rows to the destination endpoint. Exactly 5 exist; templates without one are validate-only.</p><span class="m">APPLIERS · appliers.py:299-305</span></div>
+    <div class="tile"><b>Blocking error</b><p>A problem with the import as a whole, not any one row. Vetoes apply. Today's only producer: an option set that resolved empty.</p><span class="m">BlockingError · validator.py:80-90, 208-223</span></div>
+    <div class="tile"><b>Idempotency claim</b><p>A 15-minute Redis SET NX on (tenant, template, key) that turns a double-click replay into a 409. Fail-open when Redis is down.</p><span class="m">import_engine:idem:{tenant}:{template}:{key} · import_router.py:118-130</span></div>
+    <div class="tile"><b>Run blob</b><p>One JSON document per apply in GCS: actor, submitted rows, per-row outcomes, destination response. There is deliberately no import_job table.</p><span class="m">gs://{bucket}/{chain}/{template}/{utc}-{run_id}.json · run_log.py</span></div>
+    <div class="tile"><b>applyOverride</b><p>The host-owned write path for validate-only templates: the dialog hands the screen the server-normalized rows and the screen keeps the apply code it already has.</p><span class="m">ApplyOverride · ImportEngine/types.ts</span></div>
+  </div>
+  <div class="note"><b>The tenant comes from the bearer token, never a query parameter.</b> <code>_caller</code> resolves the caller's <code>UserRole.org</code> as the tenant. The old <code>/csv/dropdown/*</code> endpoints took <code>csvbox_chain</code> from the querystring because CSVBox's widget could not send a bearer token; nothing in the engine has that constraint. The one exception is <code>?chain=</code>, honoured only for internal Loop users (loop-admin importing on behalf of a customer); anyone else naming a chain other than their own gets 403 "You can only import into your own organization." (<code>import_router.py:73-96</code>).</div>
+</section>
+
+<!-- ═══════════════════════ PAGE 2: DATA MODEL ═══════════════════════ -->
+<section id="datamodel">
+  <p class="kick">The system</p>
+  <h2>Templates &amp; data model</h2>
+  <p>There are no new database tables. The whole schema is Python dataclasses in the repo; the only state the engine itself creates at runtime is the Redis idempotency claim and the GCS run blob. Everything else is written by destination endpoints that already existed.</p>
+  <div class="diagram"><pre class="mermaid">
+erDiagram
+  TEMPLATE ||--o{ COLUMN : declares
+  TEMPLATE ||--o{ ROW_RULE : checks
+  TEMPLATE ||--o| EXISTENCE_RULE : guards
+  TEMPLATE ||--o| APPLIER : "wave 1 only"
+  COLUMN }o--o| OPTION_SOURCE : "ref / ref_list"
+  OPTION_SOURCE ||--o{ RESOLVED : "per tenant, per validate"
+  TEMPLATE {
+    string key "15 in TEMPLATES"
+    string destination "the endpoint that owns the table"
+    tuple upsert_key "insert-vs-update, mandatory"
+    string scope "chain | org | global"
+  }
+  COLUMN {
+    string type "text..ref_list (11)"
+    bool required
+    bool multi "split on pipe"
+    string parent_column "cascading, e.g. store_id"
+    string validated_by "browser | server (wire)"
+  }
+  OPTION_SOURCE {
+    string value_space "ID NAME EMAIL UID ENUM_KEY"
+    string accepts "dual acceptance"
+  }
+  RESOLVED {
+    set values "canonical"
+    dict index "spelling to canonical"
+    dict dependents "parent to child values"
+  }
+  </pre></div>
+  <p class="cap">The declaration chain: a template owns columns; a ref column names an option source; validation materializes the source into a ResolvedOptions (values, spelling index, labels, dependents) once per validate call. <code>value_space</code> exists because the same entity is addressed differently per column: a location is a name in <code>teammates.location</code> but an id in <code>digital_stores.bname_id</code> (schema.py:16-20).</p>
+  <h3>Division of labor</h3>
+  <ul>
+    <li><code>import_engine/schema.py</code> — the dataclasses and their self-checks. <code>ImportColumn.__post_init__</code> rejects a ref without an option source, an enum without enum_values, and multi on a non-multi-capable type.</li>
+    <li><code>import_engine/templates.py</code> — the 15 declarations. Registry, validator, and wire format import without the web stack; heavy modules load lazily inside resolvers and appliers.</li>
+    <li><code>import_engine/option_sources.py</code> — the 9 resolvers, reusing the <code>/csv/dropdown/*</code> functions verbatim so there is exactly one copy of the SQL.</li>
+    <li><code>import_engine/validator.py</code> — the three tiers, uniqueness, existence, the wand.</li>
+    <li><code>import_engine/serialize.py</code> — the wire format (<code>validated_by</code> per column) and the sample-CSV generator (formula-injection escaped, CWE-1236).</li>
+    <li><code>import_engine/appliers.py</code> + <code>run_log.py</code> — the 5 write adapters, the run blob, the structured logs.</li>
+    <li><code>api_routers/import_router.py</code> — the 5 endpoints, tenant resolution, the idempotency claim, the partial-import gate. Mounted via <code>data_proxy_router</code> into every service that includes it — six today: admin, balance, data_proxy, frontend_data, internal and store_uptime.</li>
+  </ul>
+  <h3>The 15 templates</h3>
+  <div class="tablewrap"><table>
+    <tr><th>key</th><th>label</th><th>scope</th><th>upsert key</th><th>apply</th><th>write path</th><th>option sources</th></tr>
+    <tr><td class="k">locations</td><td>Locations</td><td>chain</td><td class="mono">(id,)</td><td><span class="chip ok">server</span></td><td>applier re-implements /bnames/bulk/upload/v2 (see rail 3)</td><td class="mono">bnames.byId (existence only)</td></tr>
+    <tr><td class="k">teammates</td><td>Teammates</td><td>chain</td><td class="mono">(email,)</td><td><span class="chip ok">server</span></td><td>POST /v1/setup/teammates/bulk-import</td><td class="mono">accessLevels, storeManagerScope, franchisees.byName, bnames.byName, notificationTypes</td></tr>
+    <tr><td class="k">user_notifications</td><td>Notification settings</td><td>org</td><td class="mono">(email,)</td><td><span class="chip ok">server</span></td><td>POST /v1/setup/notifications/bulk-import</td><td class="mono">users.byEmail, notificationTypes</td></tr>
+    <tr><td class="k">billing_accounts</td><td>Billing accounts</td><td>chain</td><td class="mono">(account_name,)</td><td><span class="chip ok">server</span></td><td>POST /v1/billing/setup/groupings/bulk</td><td class="mono">bnames.byName</td></tr>
+    <tr><td class="k">digital_stores</td><td>Digital stores</td><td>chain</td><td class="mono">(platform, store_id)</td><td><span class="chip ok">server</span></td><td>update_digital_stores (UPDATE-only)</td><td class="mono">platforms (×2, cascading), bnames.byId</td></tr>
+    <tr><td class="k">franchises</td><td>Franchise groups</td><td>chain</td><td class="mono">(franchise_name,)</td><td><span class="chip info">override</span></td><td>client: createSubChain per row</td><td class="mono">bnames.byName, users.byEmail</td></tr>
+    <tr><td class="k">gl_codes</td><td>GL codes</td><td>chain</td><td class="mono">(id,)</td><td><span class="chip info">override</span></td><td>POST /freetext/company/gl-codes</td><td>—</td></tr>
+    <tr><td class="k">company_classes</td><td>Accounting classes</td><td>chain</td><td class="mono">(id,)</td><td><span class="chip info">override</span></td><td>POST /r365/company/classes or /freetext/company/classes</td><td>—</td></tr>
+    <tr><td class="k">journal_custom_columns</td><td>Journal custom column values</td><td>chain</td><td class="mono">(column_value_id,)</td><td><span class="chip info">override</span></td><td>POST /freetext/company/custom-journal-column</td><td>—</td></tr>
+    <tr><td class="k">cogs</td><td>Menu COGS</td><td>chain</td><td class="mono">(menu_item,)</td><td><span class="chip info">override</span></td><td>client: CogsComponent.handleCsvUpload</td><td>—</td></tr>
+    <tr><td class="k">pos_transactions</td><td>POS transactions</td><td>chain</td><td class="mono">(date, location, platform)</td><td><span class="chip info">override</span></td><td>POST /pos/report/ingest</td><td class="mono">platforms</td></tr>
+    <tr><td class="k">crunchtime_transactions</td><td>Crunchtime report</td><td>chain</td><td class="mono">(date, location, transaction)</td><td><span class="chip info">override</span></td><td>/manual-ingest/report/tests then /manual-ingest/report</td><td>—</td></tr>
+    <tr><td class="k">onboarding_stores</td><td>Onboarding stores</td><td>global</td><td class="mono">(platform, store_id)</td><td><span class="chip info">override</span></td><td>client: Firestore setDoc (internal)</td><td class="mono">platforms</td></tr>
+    <tr><td class="k">campaign_plan</td><td>Custom campaign plan</td><td>global</td><td class="mono">(store_id, platform, start_date)</td><td><span class="chip info">override</span></td><td>POST /marketing/api/plan-generation/upload</td><td>— (enums)</td></tr>
+    <tr><td class="k">org_credentials</td><td>Platform credentials</td><td>org</td><td class="mono">(domain, username)</td><td><span class="chip bad">validate-only by design</span></td><td>POST /store-mapping/username/add/bulk (client)</td><td class="mono">platforms</td></tr>
+  </table></div>
+  <div class="rail"><b>org_credentials will not get an applier as-is.</b> Its declaration says why: "Carries plaintext passwords in a CSV; the engine keeps it validate-only and the field should move to a secrets flow before this template gets an applier." The engine's apply path persists every submitted row into the PII run blob (run_log.py:80-81), so wiring an applier today would archive plaintext platform passwords in GCS.</div>
+</section>
+
+<!-- ═══════════════════════ PAGE 3: WHY NOT CSVBOX ═══════════════════════ -->
+<section id="whynot">
+  <p class="kick">The system</p>
+  <h2>Why not CSVBox</h2>
+  <p>CSVBox is the hosted CSV widget Loop used for every bulk upload. Five classes of shipped failure forced the replacement; each one maps to a specific engine mechanism.</p>
+  <div class="tablewrap"><table>
+    <tr><th>#</th><th>the CSVBox failure (the scar)</th><th>the engine mechanism</th></tr>
+    <tr><td class="num">1</td><td><b>No entity tier.</b> CSVBox could not check a value against a live, chain-scoped set, so "Kanpur Central is not one of your locations" arrived only after the destination rejected the payload — or never, when the destination silently accepted it.</td><td>ENTITY-tier validation runs before apply: the error lands on the cell while the customer is still looking at the grid (validator.py:15-21).</td></tr>
+    <tr><td class="num">2</td><td><b>Tenant in the querystring.</b> Every /csv/dropdown/* route took <code>csvbox_chain</code> from the URL because the widget could not send a bearer token — any caller could enumerate another chain's locations, franchisees and users by editing a parameter. The v1 access-level dropdown also read a global Firestore collection, leaking custom roles across tenants.</td><td>Tenant from the bearer token, always; <code>?chain=</code> honoured for internal users only (403 otherwise). Only the v2, chain-scoped option sources are registered; v1 is deliberately absent (option_sources.py:189-192).</td></tr>
+    <tr><td class="num">3</td><td><b>Insert-only sheets.</b> Every sheet except Locations was insert-only, so re-uploading a corrected file duplicated rows.</td><td><code>upsert_key</code> is a required field of every template; it also powers in-file duplicate detection, so a file that contradicts itself fails the second row instead of last-write-wins (schema.py:211-223, validator.py:276-302).</td></tr>
+    <tr><td class="num">4</td><td><b>Brittle matching.</b> Comparison was case-sensitive: <code>Downtown</code> against a stored <code>downtown</code> failed with "value not in list". A non-ASCII <code>display_label</code> (an em-dash) made the widget silently fall back to the raw value.</td><td>All matching is case-insensitive with canonical casing handed back; labels are built with plain ASCII hyphens (option_sources.py:15-17, csvbox_router.py:20-30).</td></tr>
+    <tr><td class="num">5</td><td><b>Schema in a vendor dashboard.</b> The sheet definitions drifted from the frontends reading them: sheet 21651 had no <code>id</code> column even though the frontend read <code>row.id</code> and <code>row.owner_id</code>, so both were always null and onboarding uploads could never update. A broken dropdown made every ref cell fail "once per row, and customers could not tell a broken dropdown from bad data".</td><td>Schema-as-code: the sample CSV, the grid, and the validator all read the same declaration. An empty option set becomes ONE import-level blocking error in its own words (validator.py:28-33).</td></tr>
+  </table></div>
+  <h3>The migration map: 20 sheets → 15 templates</h3>
+  <p>Commit <code>a2ac597243</code> counts "the 20 CSVBox sheets in use, consolidated". Sheet ids were recorded in the template docstrings for auditability and later stripped from the customer-visible descriptions (<code>4789384916</code>); they are recovered here from the initial commit. Where the dashboard id was never recorded in code, the row names the mount instead of inventing a number.</p>
+  <div class="tablewrap"><table>
+    <tr><th>template</th><th>replaces</th><th>consolidation note</th></tr>
+    <tr><td class="k">locations</td><td class="mono">8876 + 21651</td><td>Merged: Mapping → Locations (id/name/address) and the Onboarding checklist sheet (name/address only). One template with an optional <code>id</code> gives the onboarding path update capability it never had.</td></tr>
+    <tr><td class="k">teammates</td><td>"Bulk Add Users – Frontend" + admin Users sheet</td><td>Frontend sheet plus loop-admin's own (its distinct license key survived in the pre-migration BulkAddUser.tsx; neither dashboard id was recorded in code).</td></tr>
+    <tr><td class="k">user_notifications</td><td>"Bulk Add Notifications – Frontend" + admin NotificationConfig sheet</td><td>Frontend sheet plus the admin variant (own license key, ids not recorded).</td></tr>
+    <tr><td class="k">billing_accounts</td><td>"Bulk Add – Billing" sheet</td><td>Dashboard id not recorded in code.</td></tr>
+    <tr><td class="k">digital_stores</td><td>Mapping → DigitalStores sheet</td><td>Dashboard id not recorded in code; the pre-migration mount's license key was <code>gBbGTY…</code>. Keeps <code>bname_id</code> as an id because that is what the destination writes; the option source accepts a name too.</td></tr>
+    <tr><td class="k">franchises</td><td class="mono">10198 + admin OrgConfig sheet</td><td>Member Mapping tab plus the admin variant (own license key).</td></tr>
+    <tr><td class="k">gl_codes</td><td class="mono">8754</td><td>—</td></tr>
+    <tr><td class="k">company_classes</td><td class="mono">9976 + 8852</td><td>Merged: the R365 and Freetext class sheets "which were identical".</td></tr>
+    <tr><td class="k">journal_custom_columns</td><td class="mono">15249</td><td>Which column is chosen in the UI.</td></tr>
+    <tr><td class="k">cogs</td><td class="mono">14414</td><td>—</td></tr>
+    <tr><td class="k">pos_transactions</td><td class="mono">12538 + 13795</td><td>Merged: subtotal-including-tax and subtotal-excluding-tax sheets. Fill exactly one subtotal column and the template type follows (row rule <code>exactly_one_subtotal</code>).</td></tr>
+    <tr><td class="k">crunchtime_transactions</td><td class="mono">11879</td><td>Columns kept as text because the ingest step parses them itself.</td></tr>
+    <tr><td class="k">onboarding_stores</td><td class="mono">16835</td><td>Internal use.</td></tr>
+    <tr><td class="k">campaign_plan</td><td class="mono">20418</td><td>Space-containing human headers accepted as aliases.</td></tr>
+    <tr><td class="k">org_credentials</td><td class="mono">13332</td><td>Kept validate-only (plaintext passwords).</td></tr>
+  </table></div>
+  <div class="note"><b>Leftover:</b> <code>@csvbox/react</code> is still declared in all three apps' package.json although zero <code>CSVBoxButton</code> usages survive in any <code>src/</code>. Removal is parked pending a <code>yarn.lock</code> regeneration.</div>
+</section>
+
+<!-- ═══════════════════════ PAGE 4: LIFECYCLE ═══════════════════════ -->
+<section id="lifecycle">
+  <p class="kick">Core lifecycle</p>
+  <h2>Paste → check → fix → import</h2>
+  <div class="diagram"><pre class="mermaid">
+flowchart LR
+  A["Open dialog"] --> B["Fetch template"]
+  B --> C["Paste / drop CSV"]
+  C --> D{"Headers map?"}
+  D -->|"no"| C2["Refused at the door"]
+  D -->|"yes"| E["Grid + browser cell tier"]
+  E --> F["Check rows (server, 3 tiers)"]
+  F --> G{"Report clean?"}
+  G -->|"no"| H["Fix in grid / wand"] --> F
+  G -->|"yes"| I["Import"]
+  I --> J["Result + refetch"]
+  </pre></div>
+  <p class="cap">Any edit invalidates that row's server verdicts and the report's content key, so Import disables until a re-check. The report and the rows must match before apply is possible.</p>
+  <h3>The happy path, numbered</h3>
+  <ol>
+    <li><b>Open.</b> The dialog fetches <code>GET /imports/templates/{key}</code> on every open and fully resets its state. The template is never cached: the browser always renders the schema the server will validate against.</li>
+    <li><b>See the schema as the file.</b> SchemaPanel shows a spreadsheet-style example with the real header row and up to two sample rows from the declaration. "Copy headers" and "Sample CSV" both come from the same declaration the validator reads.</li>
+    <li><b>Paste or drop.</b> <code>parseDelimited</code> (RFC 4180 plus BOM, CRLF, quoted newlines) auto-picks comma, tab or semicolon from the first line; <code>mapHeaders</code> maps case-insensitively by key then alias; <code>toRecords</code> trims and strips Excel's literal-text apostrophe armor. A window-level paste listener means Cmd+V works without clicking anything.</li>
+    <li><b>Wrong file refused at the door.</b> Zero matched headers, or any missing required column, rejects the file in the input phase with one message: "This doesn't look like a … file. Missing required column(s): …". One message here instead of seating it in the grid with two banners.</li>
+    <li><b>Browser tier while you type.</b> Required-blank for every column plus type checks for <code>validated_by: "browser"</code> columns, recomputed per keystroke. Messages match the server wording so a customer never sees two phrasings for one mistake.</li>
+    <li><b>Check rows.</b> <code>POST /imports/templates/{key}/validate</code> runs cell, row and entity tiers with the tenant's live option sets. Errors land per cell with tooltips and, when the server is confident, a one-click wand.</li>
+    <li><b>Fix.</b> Edits and wand clicks go through the same change path; each drops that row's stale server verdicts. Removing a row clears the whole report (row numbers shift).</li>
+    <li><b>Import.</b> <code>POST .../apply</code> with the rows, the content-hash idempotency key, and <code>allow_partial</code> if the customer ticked the checkbox that only appears when the report has both valid and invalid rows.</li>
+    <li><b>Result.</b> Per-row outcomes (<code>applied / updated / skipped / failed / invalid</code>), a run id, a "Download the rows that did not import" CSV with an error column, and <code>onApplied</code> fires so the host screen refetches.</li>
+  </ol>
+  <h3>The guards protecting it</h3>
+  <ul>
+    <li><b>Partial-import refusal.</b> By default one invalid row means nothing is written: apply 422s with the full report. Applying the valid subset requires an explicit <code>allow_partial: true</code>, and the skipped rows come back as explicit <code>"invalid"</code> outcomes. A partial landing must be an informed decision, never the CSVBox pattern of half-applied files nobody chose.</li>
+    <li><b>Backend re-validation.</b> Apply re-runs all three tiers server-side no matter what the browser concluded. <code>validated_by: "browser"</code> is a latency optimization, never an authority: "we run it again because the browser is not trustworthy" (validator.py:10-11).</li>
+    <li><b>Idempotency.</b> The dialog's key is an FNV-1a hash of the rows, so a double-click or network retry replays the same key and gets 409 "This file was already applied." within 15 minutes. Redis down means the guard degrades to unprotected rather than to an outage.</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════ PAGE 5: ONE-PASS DIGITAL STORES ═══════════════════════ -->
+<section id="onepass-stores">
+  <p class="kick">One-pass dry runs · one-pass diagram</p>
+  <h2>One pass: importing digital stores on acme_14</h2>
+  <p>House-style walkthrough with the chain's real rows. This exact import ran on 2026-09-07 at 18:17 against dev <code>loop_core</code> chain 1199 (<code>acme_14</code>): two seeded placeholder stores were remapped to their real locations through the Mapping → Digital stores dialog. The third seeded store was deliberately left out of the file.</p>
+  <div class="op">
+    <div class="op-head">
+      <div class="t">Customer fixes two store mappings in the grid → Check rows → Import 2 rows</div>
+      <div class="m">POST /imports/templates/digital_stores/apply · body: {rows: [{platform: "Doordash", store_id: "71801001", name: "Dave's Downtown (DoorDash)", bname_id: "Dave's Downtown", am_name: "Sam Ortiz"}, {platform: "UberEats", store_id: "e4c72b58-ue-801", name: "Dave's Riverside (UberEats)", bname_id: "Dave's Riverside 2", am_name: "Sam Ortiz"}], idempotency_key: "digital_stores-6b67a049-2", allow_partial: false, options: {demo: false}}</div>
+    </div>
+    <div class="op-sec"><div class="l">Before</div>
+      <div class="tname">digital_stores (the 3 seeded rows; state as seeded 2026-09-07 — reconstructed from the seeding spec; row 376157 still sits in exactly this shape live, corroborating the pattern)</div>
+      <div class="tablewrap"><table>
+        <tr><th>id</th><th>platform</th><th>name</th><th>store_id</th><th>bname_id</th><th>(bname → chain)</th><th>am_name</th><th>unmapped</th></tr>
+        <tr><td class="num">376155</td><td>Doordash</td><td>Acme DD Storefront</td><td>71801001</td><td class="num">319905</td><td class="num">1199</td><td><i>(empty)</i></td><td>t</td></tr>
+        <tr><td class="num">376156</td><td>UberEats</td><td>Acme UE Storefront</td><td>e4c72b58-ue-801</td><td class="num">319906</td><td class="num">1199</td><td><i>(empty)</i></td><td>t</td></tr>
+        <tr><td class="num">376157</td><td>Grubhub</td><td>Acme GH Storefront</td><td>3100002</td><td class="num">319905</td><td class="num">1199</td><td><i>(empty)</i></td><td>t</td></tr>
+      </table></div>
+      <div class="tname">bnames (all 6 rows for chain_id 1199, live; each has its chain_bname_mapping row 184553-184558)</div>
+      <div class="tablewrap"><table>
+        <tr><th>id</th><th>name</th><th>address</th><th>chain_id</th></tr>
+        <tr><td class="num">319905</td><td>loc 1</td><td>Bangalore</td><td class="num">1199</td></tr>
+        <tr><td class="num">319906</td><td>loc 2</td><td>el 2</td><td class="num">1199</td></tr>
+        <tr><td class="num">319907</td><td>loc 3</td><td>okay</td><td class="num">1199</td></tr>
+        <tr><td class="num">319908</td><td>loc 4</td><td>los</td><td class="num">1199</td></tr>
+        <tr><td class="num">319909</td><td>Dave's Downtown</td><td>221 W 4th St, Austin, TX 78701</td><td class="num">1199</td></tr>
+        <tr><td class="num">319910</td><td>Dave's Riverside 2</td><td>900 S 1st St, Austin, TX 78704</td><td class="num">1199</td></tr>
+      </table></div>
+    </div>
+    <div class="op-sec"><div class="l">Mutation steps</div>
+      <ol class="steps">
+        <li><div><b>Re-validate server-side</b> — no table. All three tiers re-run regardless of the browser's verdicts. <code>platform</code> resolves against the platforms source; <code>store_id</code> is narrowed to the row's platform via dependents (a DoorDash id filed under Uber Eats would fail here); <code>bname_id</code> is declared as an id but the customer typed names — dual acceptance normalizes "Dave's Downtown" → <code>319909</code> and "Dave's Riverside 2" → <code>319910</code> before anything is written.</div></li>
+        <li><div><b>Claim idempotency</b> — Redis, not Postgres: <code>SET NX EX 900</code> on <code>import_engine:idem:acme_14:digital_stores:digital_stores-6b67a049-2</code>. The key is the dialog's FNV-1a content hash of exactly the rows above (recomputed here with the shipped <code>csv.ts contentKey</code>). A second identical apply inside 15 minutes gets 409 "This file was already applied." The claim is taken before the applier runs, so a failed apply also burns the key for 15 minutes.</div></li>
+        <li><div><b>Per-row UPDATE, row 1</b> — table: <code>digital_stores</code>. <code>apply_digital_stores</code> calls <code>update_digital_stores</code> directly; the match is <code>platform + store_id + ChainBNameMapping.chain_id = 1199</code>. UPDATE-only: a store id with no existing row fails "Store ID not found", never inserts. <code>unmapped</code> is forced to false on every applied row.
+          <div class="tablewrap"><table><tr><th>id</th><th>name</th><th>bname_id</th><th>am_name</th><th>unmapped</th></tr><tr class="chg"><td class="num">376155</td><td>Acme DD Storefront → Dave's Downtown (DoorDash)</td><td>319905 → 319909</td><td>'' → Sam Ortiz</td><td>t → f</td></tr></table></div>
+        </div></li>
+        <li><div><b>Per-row UPDATE, row 2</b> — table: <code>digital_stores</code>. Same match, second row. Row 376157 (Grubhub) is not in the file and is untouched: per-row means unnamed rows are never rewritten.
+          <div class="tablewrap"><table><tr><th>id</th><th>name</th><th>bname_id</th><th>am_name</th><th>unmapped</th></tr><tr class="chg"><td class="num">376156</td><td>Acme UE Storefront → Dave's Riverside (UberEats)</td><td>319906 → 319910</td><td>'' → Sam Ortiz</td><td>t → f</td></tr></table></div>
+        </div></li>
+        <li><div><b>Write the run blob</b> — GCS, not Postgres: <code>gs://loop-imports/acme_14/digital_stores/20260907T…Z-&lt;run_id&gt;.json</code> (bucket from <code>IMPORT_RUNS_BUCKET</code>, default <code>loop-imports</code>; <code>run_id</code> = <code>uuid4().hex[:12]</code>). Holds actor, submitted rows, per-row outcomes and the destination's raw response; there is deliberately no <code>import_job</code> table, so the blob is the only record. Fail-soft: on a local dev run without GCS credentials the write logs and returns None rather than turning a landed import into a 500.<span class="cas">Cascade: <b>Cloud Logging</b> one structured <code>import_engine.apply</code> line per (template, status) with template_key, chain, actor_uid, run_id, row_count — fields, not a formatted string, so "which chains fail on teammates.location" is a filter.</span></div></li>
+      </ol>
+    </div>
+    <div class="op-sec"><div class="l">After</div>
+      <div class="tname">digital_stores (queried live post-import; 376155/376156 updated_at moved to 18:17:06, 376157 still equals its created_at 18:15:47)</div>
+      <div class="tablewrap"><table>
+        <tr><th>id</th><th>platform</th><th>name</th><th>store_id</th><th>bname_id</th><th>am_name</th><th>unmapped</th></tr>
+        <tr><td class="num">376155</td><td>Doordash</td><td>Dave's Downtown (DoorDash)</td><td>71801001</td><td class="num">319909</td><td>Sam Ortiz</td><td>f <span class="chip ok">mapped</span></td></tr>
+        <tr><td class="num">376156</td><td>UberEats</td><td>Dave's Riverside (UberEats)</td><td>e4c72b58-ue-801</td><td class="num">319910</td><td>Sam Ortiz</td><td>f <span class="chip ok">mapped</span></td></tr>
+        <tr><td class="num">376157</td><td>Grubhub</td><td>Acme GH Storefront</td><td>3100002</td><td class="num">319905</td><td><i>(empty)</i></td><td>t <span class="chip warn">untouched</span></td></tr>
+      </table></div>
+      <p style="font-size:13.5px;max-width:76ch">The dialog shows the green check, "Import complete · 2 added", and the run id. <code>onApplied</code> fires and the Mapping grid refetches, so the two stores now render against Dave's Downtown and Dave's Riverside 2. Response summary: <code>{applied: 2, updated: 0, skipped: 0, failed: 0}</code> — this applier reports every successful write as <code>applied</code> even though each write is an UPDATE.</p>
+    </div>
+    <div class="legend"><span><span class="sw" style="background:var(--add)"></span> inserted (none — this applier never inserts)</span><span><span class="sw" style="background:var(--chg)"></span> updated</span><span><span class="sw" style="background:var(--del)"></span> deleted (never)</span></div>
+  </div>
+  <div class="rail"><b>The scoping divergence to know about.</b> Validation resolves legal store ids through <code>bnames.chain_id</code> (the dropdown SQL joins <code>digital_stores → bnames → chains</code>), but apply matches through <code>chain_bname_mapping</code>. A bname with <code>chain_id</code> set but no mapping row — exactly what the old hasattr bug produced (rail 3) — validates as legal and then fails at apply with "Store ID not found". The acme_14 rows above all carry both, which is why this run was clean. Full story on the option-sources page.</div>
+</section>
+
+<!-- ═══════════════════════ PAGE 6: ONE-PASS FRANCHISE VALIDATE ═══════════════════════ -->
+<section id="onepass-franchise">
+  <p class="kick">One-pass dry runs · one-pass diagram</p>
+  <h2>One pass: validating franchise groups (nothing is written)</h2>
+  <p><code>franchises</code> is a validate-only template: it has no entry in <code>APPLIERS</code>, so the engine checks the file and the Mapping screen keeps its own per-row <code>createSubChain</code> write path. This pass shows the validate half on <code>acme_14</code>: one good row, one row naming a location the chain does not have. The report below is the shipped code's verbatim output, produced by running <code>validator.validate</code> against the chain's real option values (the six bnames in the Before table and the invited teammate <code>priya@davespizza.com</code>; script in the runbook page).</p>
+  <div class="op">
+    <div class="op-head">
+      <div class="t">Customer pastes two franchise rows → clicks Check rows</div>
+      <div class="m">POST /imports/templates/franchises/validate · body: {rows: [{franchise_name: "East Austin", location_name: "Dave's Downtown|Dave's Riverside 2", user_ids: "priya@davespizza.com"}, {franchise_name: "Bad Group", location_name: "Kanpur Central|loc 2", user_ids: "priya@davespizza.com"}]}</div>
+    </div>
+    <div class="op-sec"><div class="l">Before</div>
+      <div class="tname">bnames (chain_id 1199 — the set bnames.byName resolves; ids double as accepted spellings via dual acceptance)</div>
+      <div class="tablewrap"><table>
+        <tr><th>id</th><th>name</th><th>chain_id</th></tr>
+        <tr><td class="num">319905</td><td>loc 1</td><td class="num">1199</td></tr>
+        <tr><td class="num">319906</td><td>loc 2</td><td class="num">1199</td></tr>
+        <tr><td class="num">319907</td><td>loc 3</td><td class="num">1199</td></tr>
+        <tr><td class="num">319908</td><td>loc 4</td><td class="num">1199</td></tr>
+        <tr><td class="num">319909</td><td>Dave's Downtown</td><td class="num">1199</td></tr>
+        <tr><td class="num">319910</td><td>Dave's Riverside 2</td><td class="num">1199</td></tr>
+      </table></div>
+      <div class="tname">users.byEmail (org-scoped, Firebase-side — teammate identity does not live in Postgres at all: a 242-table sweep of loop_core for davespizza found zero rows. The resolved set here is the chain's invited teammate.)</div>
+      <div class="tablewrap"><table>
+        <tr><th>email</th><th>source</th></tr>
+        <tr><td>priya@davespizza.com</td><td>Firestore users collection, org acme_14</td></tr>
+      </table></div>
+    </div>
+    <div class="op-sec"><div class="l">Mutation steps</div>
+      <ol class="steps">
+        <li><div><b>Resolve option sources</b> — no table. <code>_resolve_sources</code> materializes <code>bnames.byName</code> (with id aliases) and <code>users.byEmail</code> once for the whole call. Neither set is empty, so no blocking error. Had a resolver failed, the report would carry ONE <code>empty_option_set</code> blocking error instead of a wall of per-cell failures.</div></li>
+        <li><div><b>Cell tier</b> — no table. Types and requiredness; both rows pass. <code>location_name</code> and <code>user_ids</code> are ref_list columns, split on <code>|</code> — pipe, never comma, because CSVBox emitted multi-select cells pipe-delimited and every consumer that parsed them with a comma silently collapsed the list into one string.</div></li>
+        <li><div><b>Row tier, then uniqueness</b> — no table. No row rules on this template; the upsert key <code>(franchise_name,)</code> has no in-file repeats.</div></li>
+        <li><div><b>Entity tier</b> — no table. Row 1's names all resolve. Row 2's "Kanpur Central" is in no chain-1199 set: ENTITY-tier <code>unknown_ref</code>, and because "loc 2" did resolve, the whole-cell wand offers to keep it and remove the unmatchable entry. The message samples real legal values so the customer sees what was expected.</div></li>
+        <li><div><b>Return the report. NOTHING is written</b> — no table, no Redis claim, no GCS blob. The only side effect of validate is one <code>import_engine.row_errors</code> warning log line (counted per column_key + code). Every Before table above is byte-identical after this call.</div></li>
+      </ol>
+    </div>
+    <div class="op-sec"><div class="l">After</div>
+      <div class="tname">the response — report.as_dict(), verbatim</div>
+      <pre style="background:var(--code-bg); border:1px solid var(--line); padding:12px 14px; overflow-x:auto; font-family:var(--mono); font-size:12px; line-height:1.5; margin:8px 0 12px;">{
+  "template_key": "franchises",
+  "template_version": 1,
+  "can_apply": true,
+  "summary": { "total": 2, "valid": 1, "invalid": 1 },
+  "blocking": [],
+  "unknown_headers": [],
+  "rows": [
+    {
+      "row_no": 1,
+      "values": {
+        "franchise_name": "East Austin",
+        "location_name": ["Dave's Downtown", "Dave's Riverside 2"],
+        "user_ids": ["priya@davespizza.com"]
+      },
+      "valid": true,
+      "errors": []
+    },
+    {
+      "row_no": 2,
+      "values": {
+        "franchise_name": "Bad Group",
+        "location_name": null,
+        "user_ids": ["priya@davespizza.com"]
+      },
+      "valid": false,
+      "errors": [
+        {
+          "row_no": 2,
+          "tier": "entity",
+          "code": "unknown_ref",
+          "message": "'Kanpur Central' is not among your locations. Yours include: Dave's Downtown, Dave's Riverside 2, loc 1 and 3 more.",
+          "column_key": "location_name",
+          "observed_value": "Kanpur Central|loc 2",
+          "suggested_fix": null,
+          "fix": {
+            "column_key": "location_name",
+            "value": "loc 2",
+            "label": "Remove 'Kanpur Central'"
+          }
+        }
+      ]
+    }
+  ]
+}</pre>
+      <p style="font-size:13.5px;max-width:76ch">The grid seats the error on row 2's Locations cell with a wand labeled "Remove 'Kanpur Central'"; clicking it replaces the whole cell with <code>loc 2</code> and the re-check goes green. Note the normalized values in row 1: pipe lists came back as arrays with canonical casing — this is what an <code>applyOverride</code> destination receives, so it never re-implements parsing. If the customer clicks Import on this template, the dialog does not call the engine's apply (that would 400: "'Franchise groups' can be validated here but is still applied by its own screen."); it hands the valid rows to the mount's <code>createSubChain</code> override.</p>
+    </div>
+    <div class="legend"><span><span class="sw" style="background:var(--add)"></span> inserted (nothing)</span><span><span class="sw" style="background:var(--chg)"></span> updated (nothing)</span><span><span class="sw" style="background:var(--del)"></span> deleted (nothing) — validate writes no rows by contract</span></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ PAGE 7: VALIDATOR ═══════════════════════ -->
+<section id="validator">
+  <p class="kick">Deep dives</p>
+  <h2>The three-tier validator</h2>
+  <p><code>validate(template, rows, tenant, headers)</code> runs everything in order per call: header mapping, cell tier, row rules, in-file uniqueness, existence. The tiers exist because they have different trust and data requirements:</p>
+  <div class="tablewrap"><table>
+    <tr><th>tier</th><th>what it checks</th><th>pure?</th><th>browser</th><th>server</th><th>error codes</th></tr>
+    <tr><td class="k">CELL</td><td>Type, required, enum membership</td><td>yes</td><td>runs it, for instant feedback ("a green cell here is a hint, not a promise")</td><td>re-runs it, "because the browser is not trustworthy"</td><td class="mono">required, invalid_*</td></tr>
+    <tr><td class="k">ROW</td><td>Cross-field rules ("this role needs a franchise")</td><td>yes</td><td>no — server-only today</td><td>runs it; a rule whose check raises counts as failed; error anchors to the rule's first column</td><td class="mono">rule keys, e.g. franchise_required_for_role</td></tr>
+    <tr><td class="k">ENTITY</td><td>Membership in a live chain-scoped set + cross-row duplicates + existence collisions</td><td>no — needs the DB</td><td>structurally cannot</td><td>the whole point: "the tier CSVBox could not run"</td><td class="mono">unknown_ref, duplicate_in_file, already_exists</td></tr>
+  </table></div>
+  <p>The wire format labels each column <code>validated_by: "browser" | "server"</code> from the frozenset of static types. Ref and ref_list are always server. The declared next rule to add, straight from the code: uniqueness against rows already in the DB ("this email already belongs to another organization"), to live alongside <code>_validate_uniqueness</code> (validator.py:23-26).</p>
+  <h3>Coercion, per type</h3>
+  <div class="tablewrap"><table>
+    <tr><th>type</th><th>accepted / normalization</th></tr>
+    <tr><td class="k">email</td><td>lowercased; <code>^[^@\s]+@[^@\s.]+\.[^@\s]+$</code></td></tr>
+    <tr><td class="k">url</td><td>must start <code>http://</code> or <code>https://</code></td></tr>
+    <tr><td class="k">number</td><td><code>int(float(text))</code>, commas tolerated</td></tr>
+    <tr><td class="k">currency</td><td>strips <code>$</code> and commas → float</td></tr>
+    <tr><td class="k">boolean</td><td>truthy {yes, y, true, 1, t} · falsy {no, n, false, 0, f}</td></tr>
+    <tr><td class="k">date</td><td>six formats accepted (%Y-%m-%d, %m/%d/%Y, %d/%m/%Y, %Y/%m/%d, %m-%d-%Y, %d-%b-%Y), normalized to ISO</td></tr>
+    <tr><td class="k">enum</td><td>case-insensitive match, canonical casing handed back; multi supported</td></tr>
+    <tr><td class="k">text / phone (multi)</td><td>split on <code>|</code>; blank optional cell takes the column default</td></tr>
+  </table></div>
+  <h3>In-file uniqueness</h3>
+  <p>The tuple of upsert-key values per row is tracked; a repeat fails the <b>second</b> row with ENTITY-tier <code>duplicate_in_file</code>: "Row {first} already uses this {key list}." The scar: "Without this the last occurrence silently wins and the customer never learns the file contradicted itself." Rows where any key part is None are skipped, as are templates with an empty upsert key.</p>
+  <h3>Existence rules</h3>
+  <p>Only user so far: <code>locations.location_exists</code>. A row with no <code>id</code> whose <code>name</code> already belongs to the chain gets <code>already_exists</code> — "{message} It is {label} (id {existing})." — with the machine fix "Use id {n}" targeting the id column. The scar: the old endpoint rejected that row as <code>duplicate</code> when it was really "an update the customer forgot to mark, not a new location". The rule's source is an option source whose index maps the other spelling back to the canonical value, which is exactly what makes the suggested fix exact. Skipped when <code>unless_present</code> (the id) has a value, when the cell is blank, or when the source resolved empty.</p>
+  <h3>The wand contract</h3>
+  <ul>
+    <li><code>RowError.fix = {column_key, value, label}</code> where value is the <b>full replacement cell content</b>, applied verbatim by the client.</li>
+    <li>Single-value near-miss: offered only when exactly one legal value is a close match (difflib cutoff 0.78, ties suppressed). "loc 9" against loc 1..4 ties four ways and offers nothing; "dave's dwntown" resolves. A wrong-but-well-formed value (someone else's email) gets no button: "guessing a different human is not a fix."</li>
+    <li>REF_LIST whole-cell wand: all bad entries reported at once ("no whack-a-mole"); typos get replacements, unmatchable entries get removals, and the label names both halves ("Replace with 'X' and remove 'Y'") so the click is an informed choice. The wand appears only when clicking it turns the whole cell green — and is withheld entirely when the fix would empty a required cell: "a 'fix' that guarantees a required-blank error is no fix."</li>
+  </ul>
+  <h3>Message construction</h3>
+  <p><code>_unknown_ref_message</code> quotes every bad value, agrees the verb ("is"/"are"), pluralizes the column label, and samples three real legal values: "'Kanpur Central' is not among your locations. Yours include: A, B, C and 12 more." When the set could not be resolved at all: "We could not check {…} against your {labels}." Cascading courtesy: a child ref whose parent cell already failed carries its raw value through with <b>no</b> error — the parent owns the error, "so do not pile on".</p>
+</section>
+
+<!-- ═══════════════════════ PAGE 8: OPTION SOURCES ═══════════════════════ -->
+<section id="options">
+  <p class="kick">Deep dives</p>
+  <h2>Option sources &amp; dual acceptance</h2>
+  <p>Nine sources, one registry, one rule: resolvers reuse the existing <code>/csv/dropdown/*</code> functions "verbatim so there is exactly one copy of the SQL". <code>resolve()</code> never raises — a failing resolver returns an empty set, which the validator hoists into the single <code>empty_option_set</code> blocking error. Within one validate call each source is resolved exactly once; the declared <code>cache_ttl = 60</code> is not yet consumed anywhere.</p>
+  <div class="tablewrap"><table>
+    <tr><th>key</th><th>value_space</th><th>scope</th><th>accepts (dual)</th><th>resolver</th></tr>
+    <tr><td class="k">bnames.byName</td><td>NAME</td><td>chain</td><td>NAME, <b>ID</b></td><td class="mono">get_bname_options(chain, csvbox_multiselect=True)</td></tr>
+    <tr><td class="k">bnames.byId</td><td>ID</td><td>chain</td><td>ID, <b>NAME</b></td><td class="mono">get_bname_options(chain, csvbox_multiselect=False)</td></tr>
+    <tr><td class="k">franchisees.byName</td><td>NAME</td><td>chain</td><td>—</td><td class="mono">get_franchisee_options</td></tr>
+    <tr><td class="k">users.byEmail</td><td>EMAIL</td><td>org</td><td>—</td><td class="mono">_users(org, by_email=True)</td></tr>
+    <tr><td class="k">users.byUid</td><td>UID</td><td>org</td><td>UID, <b>EMAIL</b></td><td class="mono">_users(org, by_email=False)</td></tr>
+    <tr><td class="k">accessLevels</td><td>ENUM_KEY</td><td>chain</td><td>—</td><td class="mono">get_accesslevel_options_v2</td></tr>
+    <tr><td class="k">notificationTypes</td><td>ENUM_KEY</td><td>global</td><td>—</td><td class="mono">get_notification_type_options_v2</td></tr>
+    <tr><td class="k">storeManagerScope</td><td>ENUM_KEY</td><td>global</td><td>—</td><td class="mono">get_store_manager_scope_options</td></tr>
+    <tr><td class="k">platforms</td><td>ENUM_KEY</td><td>chain</td><td>—</td><td class="mono">get_platform_options(chain) + dependents</td></tr>
+  </table></div>
+  <div class="rail"><b>Deliberately absent: the v1 sources.</b> The v1 access-level endpoint reads a global Firestore collection and "leaks custom roles across tenants". The registry comment is explicit: the admin CSVBox sheets still point at v1 today and "must move to v2 as part of their migration wave, not carry the leak forward" (option_sources.py:189-192).</div>
+  <h3>How dual acceptance works</h3>
+  <p><code>_index</code> maps both <code>value.lower()</code> and <code>label.lower()</code> of each canonical entry to the canonical value; then each alias entry — the same set resolved in the <b>other</b> value space — is joined on display label and its value indexed to the canonical. So "Dave's Downtown" and "319909" both resolve to whatever the column's canonical space is. NAME⇄ID uses the sibling bnames resolver; UID+EMAIL uses <code>_users_by_email</code>. Alias failures are swallowed (<code>_safe</code>) — dual acceptance degrades to single acceptance, never to an error. The <code>users</code> resolver is reimplemented in the module rather than calling <code>get_user_options_v2</code> "because that endpoint returns a JSONResponse, not a list. Same query, same internal-user filter."</p>
+  <h3>Cascading store_id: the dependents SQL</h3>
+  <p>The platforms resolver's SQL (quoted from <code>csvbox_router.py:33-66</code>) is what powers <code>store_id</code> cascading:</p>
+  <pre style="background:var(--code-bg); border:1px solid var(--line); padding:12px 14px; overflow-x:auto; font-family:var(--mono); font-size:12px; line-height:1.5; margin:8px 0 12px;">select ds.* from digital_stores ds
+join bnames b on b.id = ds.bname_id
+join chains c on c.id = b.chain_id
+where c.name = '&lt;chain&gt;'</pre>
+  <p>Each platform entry carries <code>"dependents": [{value: store_id}, …]</code> filtered to that platform. A column with <code>parent_column</code> shares its parent's source and <code>_narrow</code> builds a fresh ResolvedOptions from <code>dependents[str(parent_value)]</code> — "so a DoorDash store id cannot be filed under Uber Eats", the dependency the flat CSVBox dropdown could not express. Cascading columns are exempt from empty-set blocking: an empty child set just means that platform has no stores. The platform list itself is the legacy PLATFORM enum plus every registered AI-SDK (Synapse) provider, ImportError-tolerant.</p>
+  <div class="rail"><b>The validation-vs-apply scoping divergence (open scar).</b> Validation's legal store ids come from the SQL above — chain membership via <code>bnames.chain_id</code>. But <code>apply_digital_stores</code> matches rows via <code>DigitalStore → BName → ChainBNameMapping.chain_id</code>. A bname whose <code>chain_id</code> is set but which has no <code>chain_bname_mapping</code> row — exactly what the old hasattr bug produced for bulk-inserted locations (rail 3) — yields a store that <b>validates as legal but fails at apply</b> with "Store ID not found". The converse (mapping row present, divergent chain_id) validates as unknown but would apply. Until the two reads are unified, treat "validated green, applied red" on digital stores as a mapping-row gap, not customer error.</div>
+</section>
+
+<!-- ═══════════════════════ PAGE 9: APPLY PIPELINE ═══════════════════════ -->
+<section id="applypipe">
+  <p class="kick">Deep dives</p>
+  <h2>The apply pipeline</h2>
+  <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant D as Dialog
+  participant R as import_router
+  participant V as Validator
+  participant Rd as Redis
+  participant A as Applier
+  participant Dest as Destination endpoint
+  participant G as GCS
+  D->>R: POST apply (rows, idem key)
+  R->>V: re-validate all tiers
+  V-->>R: report
+  R-->>D: 422 + full report (if gated)
+  R->>Rd: SET NX EX 900 claim
+  Rd-->>R: 409 if already held
+  R->>A: dispatch (ApplyContext)
+  A->>Dest: per-row writes
+  Dest-->>A: per-row outcomes
+  R->>G: run blob (fail-soft)
+  R-->>D: run_id, summary, outcomes
+  </pre></div>
+  <p class="cap">apply_import in order (import_router.py:188-290). "Apply deliberately introduces no new write path" — every write goes through the endpoint that already owns the destination table.</p>
+  <ol>
+    <li><b>Template gate.</b> 404 unknown key; 400 if the template has no applier ("'{label}' can be validated here but is still applied by its own screen.").</li>
+    <li><b>Re-validate.</b> The same <code>validator.validate</code> as the validate endpoint, server-side, regardless of what the browser said.</li>
+    <li><b>Partial-import gate.</b> 422 with the full report when there is any blocking error, zero valid rows, or invalid rows without <code>allow_partial</code>. The detail is <code>report.as_dict()</code> so the grid can re-seat every error.</li>
+    <li><b>Idempotency claim.</b> Key <code>import_engine:idem:{tenant}:{template_key}:{idempotency_key}</code>, Redis <code>SET NX EX</code>, TTL 15 minutes. No key supplied → always proceeds. Claim held → 409. <b>Fail-open</b>: any Redis exception logs "idempotency claim unavailable, applying anyway" and proceeds — "if Redis is unreachable we apply rather than block the customer". The claim precedes the applier, so a failed apply burns the key for 15 minutes too.</li>
+    <li><b>Dispatch.</b> <code>ApplyContext(user, user_doc, tenant, db, request, demo)</code>. An applier's own HTTPException passes through; anything unexpected becomes 502 "The import could not be applied. Nothing further was written." carrying the run_id.</li>
+    <li><b>Per-row, NOT transactional.</b> The destinations commit row by row (per-row try/commit/rollback in <code>repository/base.py</code>, per-row independence in the teammates handler, per-row savepoints in the billing handler), so a file can still land half applied on write errors. That is what the run blob is for.</li>
+    <li><b>Outcomes.</b> With <code>allow_partial</code>, invalid rows are appended as explicit <code>"invalid"</code> outcomes carrying their first error; everything sorts by row_no.</li>
+    <li><b>Run blob + logs.</b> One JSON document to <code>gs://{IMPORT_RUNS_BUCKET}/{chain}/{template}/{utcstamp}-{run_id}.json</code> and structured <code>import_engine.apply</code> lines. Both fail-soft: "a logging or storage hiccup must never turn a successful import into a 500 after the rows are already written."</li>
+  </ol>
+  <h3>The five appliers</h3>
+  <div class="tablewrap"><table>
+    <tr><th>applier</th><th>tables written</th><th>match / upsert</th><th>worth knowing</th></tr>
+    <tr><td class="k">apply_locations</td><td class="mono">bnames, chain_bname_mapping</td><td>id present → UPDATE by id; blank → INSERT with chain_id</td><td>Re-implements /bnames/bulk/upload/v2 to make "the call the existing endpoint means to make and never does": <code>create_missing_chain_bname_mappings</code> for inserted rows (rail 3). Failures matched back <b>by name</b>, so two rows sharing a name share an error attribution. The generic update helper filters by id only — no chain check.</td></tr>
+    <tr><td class="k">apply_digital_stores</td><td class="mono">digital_stores</td><td>platform + store_id + ChainBNameMapping.chain_id</td><td>UPDATE-only; unmatched rows fail "Store ID not found"; <code>unmapped</code> forced false; every success reported <code>applied</code> even though every write is an update.</td></tr>
+    <tr><td class="k">apply_teammates</td><td>Firebase Auth + Firestore users (+ notification configs, scope, invite email)</td><td>email within the caller's org</td><td>Calls the bulk-import handler in-process. Same-org existing user → <code>updated</code> (access level only; <code>internal</code> untouched). Email in a <b>different</b> org → refused rather than minting a duplicate Firebase identity. Org resolved from the caller's UserRole, never the body.</td></tr>
+    <tr><td class="k">apply_user_notifications</td><td>per-user notification config state</td><td>lowercased email</td><td>Blank notifications list = switch everything off (documented in the column hint). <code>no_valid_configs</code> maps to <code>skipped</code>, reported not failed.</td></tr>
+    <tr><td class="k">apply_billing_accounts</td><td class="mono">billable_entities, bname_billing_configs (+ Zenskar/Stripe)</td><td>lowercased account_name</td><td>Delegates to <code>bulk_setup_groupings</code>: five passes — resolve, in-sheet conflict rejection ("nothing silently wins"), payment-method guard on accounts the sheet would empty, per-savepoint apply, Loop-side-only discard of emptied accounts. Re-importing the same sheet is a no-op. Ambiguous location names (bnames not unique on lower(name)) fail the row.</td></tr>
+  </table></div>
+</section>
+
+<!-- ═══════════════════════ PAGE 10: APPLY OVERRIDE ═══════════════════════ -->
+<section id="override">
+  <p class="kick">Deep dives</p>
+  <h2>applyOverride: host write paths</h2>
+  <p>For the 10 validate-only templates the dialog still owns parsing, schema, validation and the result phase — but the write belongs to the screen. The contract: <code>ApplyOverride = (rows, template) =&gt; Promise&lt;ApplyOutcome[]&gt;</code>, called with <code>report.rows.filter(r =&gt; r.valid)</code> — the <b>server-normalized</b> rows, "so it never re-implements parsing or delimiter handling": pipe lists arrive as arrays, amounts as numbers, dates as ISO. The dialog synthesizes an ApplyResponse (<code>run_id: 'client'</code>, <code>blob_uri: null</code>) so the result phase and <code>onApplied</code> behave identically. A template with neither an applier nor an override shows "This import can be checked here but is not wired to save yet."</p>
+  <div class="tablewrap"><table>
+    <tr><th>mount</th><th>override does</th></tr>
+    <tr><td class="k">FranchiseGroup (Mapping + admin OrgConfig)</td><td>Per-row <code>createSubChain({subChainName, selectedLocationIds, selectedUsers})</code>, resolving names/emails through the page's loaded maps; the batch fails fast if bname data is not loaded.</td></tr>
+    <tr><td class="k">Bookkeeping (gl_codes, company_classes ×2, journal_custom_columns)</td><td>The freetext/R365 POSTs the screens already made, with company_id (and column_name/provider) from the page state. company_classes picks R365 vs freetext by the company's integration type.</td></tr>
+    <tr><td class="k">Crunchtime</td><td>Rebuilds a CSV File from the normalized rows and feeds the page's own two-step <code>testCSVData</code> flow plus its custom results dialog.</td></tr>
+    <tr><td class="k">POS (PosReportTemplateDialog)</td><td><code>handleUploadReport(true, {rows})</code> → rebuilds a CSV blob → the ingest POST <b>with the file attached</b>. This one works.</td></tr>
+    <tr><td class="k">POS (PosIntegrationUpload)</td><td>Same-named local handler, same blob — see the scar below.</td></tr>
+    <tr><td class="k">OnboardStatus</td><td><code>bulkAddStoresToFirebase</code>; the engine hands <code>modules</code> as an array and the override joins it back with commas, because the Firebase helper still splits on a comma.</td></tr>
+    <tr><td class="k">COGS</td><td><code>handleCsvUpload({rows})</code>, locations chosen in the UI.</td></tr>
+    <tr><td class="k">admin campaign_plan</td><td>Rebuilds the CSV <b>with the human headers</b> ("the plan-generation endpoint parses the CSV itself and expects the human headers") → TruROI upload; parses "Row N" fragments out of returned error strings.</td></tr>
+    <tr><td class="k">admin teammates / notifications / credentials</td><td><code>addUsers</code> (arrays re-joined pipe-separated for the legacy API) · <code>Promise.allSettled</code> of per-row notification updates · <code>bulkAddCredentials</code> (existing username + platform rows get their password updated).</td></tr>
+  </table></div>
+  <h3>Scar: the dropped POS blob (pre-existing, preserved verbatim)</h3>
+  <div class="rail"><b>PosIntegrationUpload builds a CSV blob it never sends.</b> Both POS mounts call a local <code>handleUploadReport(true, {rows})</code> that reassembles a CSV blob. PosReportTemplateDialog attaches it to the ingest call and the file reaches the backend. PosIntegrationUpload builds the identical blob but its call sends only <code>{start_date, end_date, report_type, pos_id}</code> — the <code>formData: {file: blob}</code> lines are commented out — and the success snack "Successfully uploaded the transactions" fires regardless. The import-engine migration preserved this behavior verbatim rather than silently changing a write path; it is flagged as its own bug, not a regression.</div>
+  <h3>Scar: the dead deep-linked upload page</h3>
+  <p>Fixed during this work (<code>0e1c616e45</code>): <code>/balance/pos/upload</code> reads POS settings from context, but the provider was mounted only by the Wizard and the settings pages. A deep link rendered the page against the default context — no integration fetch, <code>selectedPos</code> null, zero network calls, a blank dead screen. The route now wraps the element in its own provider: "Deep links land here without the Wizard around them, so the page needs its own provider or the integration list never fetches." Two neighbors to know about while there: the Add POS Integration page copy still offers a "Generic Upload" tile that is commented out of the tile array (a FILE_UPLOAD integration cannot be created from that screen), and Toast/Brink integrations are created as <code>SCRAPING</code> while the upload page only lists <code>FILE_UPLOAD</code> integrations — a chain on a scraping hybrid has no upload target.</p>
+</section>
+
+<!-- ═══════════════════════ PAGE 11: SURFACES ═══════════════════════ -->
+<section id="surfaces">
+  <p class="kick">Product surfaces</p>
+  <h2>The dialog &amp; its 21 mounts</h2>
+  <div class="diagram"><pre class="mermaid">
+stateDiagram-v2
+  [*] --> loading : open (fetch template)
+  loading --> input : template loaded
+  loading --> [*] : fetch failed (fatal alert)
+  input --> review : rows parsed + headers map
+  input --> input : wrong file refused
+  review --> review : edit / wand / Check rows
+  review --> result : Import (report current + clean)
+  review --> input : Start over
+  result --> input : Import another file
+  result --> [*] : Done
+  </pre></div>
+  <p class="cap">The phase machine in ImportDialog.tsx. The dialog is not closable while busy. Template fetch happens on every open; admin mounts re-key on the selected org so switching chain refetches.</p>
+  <h3>What each phase shows</h3>
+  <ul>
+    <li><b>input</b> — SchemaPanel inline ("shows what the file looks like, as the file"); drop zone with click-to-browse and a window-level Cmd+V paste listener, or a monospace textarea whose placeholder embeds the real header row. Subtitle: "Check the columns, then paste your rows or drop a file."</li>
+    <li><b>review</b> — editable grid (render cap 500 rows: "Showing the first 500 of N rows. All rows are still checked and imported."); intent chips ("new"/"update") only when every upsert-key column is optional, because required keys decide create-vs-update server-side "so no guessing"; status line "N rows need attention" / "All rows look good."; the partial-import checkbox only when the report has both valid and invalid rows.</li>
+    <li><b>result</b> — clean run: big green check, "Import complete", "N added · N updated · N unchanged". Otherwise the outcome list plus a read-only grid with per-row icons, and the not-imported CSV download. Always shows "Run {run_id}".</li>
+  </ul>
+  <p>Copy rules that keep this coherent: <code>midSentence</code> lowercases only a leading Capitalized word, so "GL codes" and "POS transactions" survive in "Import GL codes"; every count pluralizes inline including the verb ("1 row needs attention"); hovering the wand mutes the cell's error tooltip so only the fix label shows; SchemaPanel shows an info icon only for columns with real guidance — "getting it wrong is taught by the validation error itself".</p>
+  <h3>Mount inventory (all 21)</h3>
+  <p>16 in loop-frontend — <b>loop-agents mirrors all 16 at the same paths</b> — plus 5 in loop-admin. Host configs: frontend/agents pass no chain (tenant from the bearer token); loop-admin's <code>importEngineConfigFor(chain)</code> adds <code>?chain=</code>, honoured for internal users only.</p>
+  <div class="tablewrap"><table>
+    <tr><th>#</th><th>app</th><th>template</th><th>page / route</th><th>apply mode</th></tr>
+    <tr><td class="num">1</td><td>frontend</td><td class="mono">locations</td><td>public Onboarding Checklist (StoresPanel)</td><td><span class="chip ok">server</span></td></tr>
+    <tr><td class="num">2</td><td>frontend</td><td class="mono">locations</td><td>Mapping → Locations · /onboard/data, /onboard/store-mapping</td><td><span class="chip ok">server</span></td></tr>
+    <tr><td class="num">3</td><td>frontend</td><td class="mono">digital_stores</td><td>Mapping → Digital stores</td><td><span class="chip ok">server</span></td></tr>
+    <tr><td class="num">4</td><td>frontend</td><td class="mono">franchises</td><td>Mapping → Franchise group</td><td><span class="chip info">override</span></td></tr>
+    <tr><td class="num">5</td><td>frontend</td><td class="mono">user_notifications</td><td>Post-onboarding notifications + Notification Center matrix</td><td><span class="chip ok">server</span></td></tr>
+    <tr><td class="num">6</td><td>frontend</td><td class="mono">teammates</td><td>User Management (+ Workspace empty directory)</td><td><span class="chip ok">server</span></td></tr>
+    <tr><td class="num">7</td><td>frontend</td><td class="mono">billing_accounts</td><td>Billing setup wizard · /billing/setup ("Re-importing rebuilds your account structure from the file")</td><td><span class="chip ok">server</span></td></tr>
+    <tr><td class="num">8</td><td>frontend</td><td class="mono">gl_codes</td><td>Bookkeeping → Chart of accounts</td><td><span class="chip info">override</span></td></tr>
+    <tr><td class="num">9</td><td>frontend</td><td class="mono">company_classes</td><td>Bookkeeping → Locations &amp; variables, mapping tab</td><td><span class="chip info">override</span></td></tr>
+    <tr><td class="num">10</td><td>frontend</td><td class="mono">company_classes</td><td>same area, UploadClassDialog variant</td><td><span class="chip info">override</span></td></tr>
+    <tr><td class="num">11</td><td>frontend</td><td class="mono">journal_custom_columns</td><td>GL parameters uploader (raw ImportDialog, custom title)</td><td><span class="chip info">override</span></td></tr>
+    <tr><td class="num">12</td><td>frontend</td><td class="mono">crunchtime_transactions</td><td>/balance/**/pos/crunchtime-configuration</td><td><span class="chip info">override</span></td></tr>
+    <tr><td class="num">13</td><td>frontend</td><td class="mono">pos_transactions</td><td>POS reports (…/pos/reports)</td><td><span class="chip info">override</span></td></tr>
+    <tr><td class="num">14</td><td>frontend</td><td class="mono">pos_transactions</td><td>/balance/pos/upload + wizard step <span class="chip warn">dropped-blob scar</span></td><td><span class="chip info">override</span></td></tr>
+    <tr><td class="num">15</td><td>frontend</td><td class="mono">onboarding_stores</td><td>/onboard/status (OnboardStatus)</td><td><span class="chip info">override</span></td></tr>
+    <tr><td class="num">16</td><td>frontend</td><td class="mono">cogs</td><td>MarketingCOGS · /balance/**/cogs</td><td><span class="chip info">override</span></td></tr>
+    <tr><td class="num">17</td><td>admin</td><td class="mono">campaign_plan</td><td>Campaign Ops plan-upload drawer</td><td><span class="chip info">override</span></td></tr>
+    <tr><td class="num">18</td><td>admin</td><td class="mono">franchises</td><td>Org Config → franchise tab</td><td><span class="chip info">override</span></td></tr>
+    <tr><td class="num">19</td><td>admin</td><td class="mono">teammates</td><td>admin Users (re-keyed on selected org)</td><td><span class="chip info">override</span></td></tr>
+    <tr><td class="num">20</td><td>admin</td><td class="mono">user_notifications</td><td>Notification Config (orgs pipe-joined as chain)</td><td><span class="chip info">override</span></td></tr>
+    <tr><td class="num">21</td><td>admin</td><td class="mono">org_credentials</td><td>Chain Onboarding (disabled for UNMAPPED)</td><td><span class="chip info">override</span></td></tr>
+  </table></div>
+  <p>The trigger button (<code>ImportButton</code>, default label "Bulk import") keeps the dashed outline of the legacy bulk buttons "so screens do not change shape", and the four wave-1 bulk buttons kept their exported names and props so mount sites are unchanged.</p>
+</section>
+
+<!-- ═══════════════════════ PAGE 12: GUARD RAILS ═══════════════════════ -->
+<section id="rails">
+  <p class="kick">Reference</p>
+  <h2>Guard rails</h2>
+  <p>Every rail is a rule paired with the shipped bug it prevents. If a rail's scar ever stops being true, question the rail.</p>
+  <div class="tablewrap"><table>
+    <tr><th>#</th><th>rail</th><th>the scar</th></tr>
+    <tr><td class="num">1</td><td><b>In-file duplicate detection.</b> A file repeating its own upsert key fails the second row (<code>duplicate_in_file</code>).</td><td>"Without this the last occurrence silently wins and the customer never learns the file contradicted itself." Enabled by <code>upsert_key</code> being mandatory — itself a scar: every CSVBox sheet except Locations was insert-only, so re-uploading a corrected file duplicated rows.</td></tr>
+    <tr><td class="num">2</td><td><b>Empty-option-set blocking.</b> A source resolving to nothing becomes ONE import-level blocking error that vetoes apply.</td><td>CSVBox's per-row noise: a broken dropdown made every ref cell "value not in list", once per row, "and customers could not tell a broken dropdown from bad data".</td></tr>
+    <tr><td class="num">3</td><td><b>Mapping rows for bulk-inserted locations.</b> After <code>create_or_update_rows</code> (which returns dicts), created rows are filtered with <code>not record.get("id")</code> and passed to <code>create_missing_chain_bname_mappings</code>.</td><td>The previous <code>hasattr(record, "id")</code> was always False on a dict, so no mapping was ever created: bulk-inserted locations were invisible to the endpoint's own duplicate check (re-insertable forever) and un-updatable through <code>update_digital_stores</code>. Fixed in the endpoint too (onboard_router.py:697-707).</td></tr>
+    <tr><td class="num">4</td><td><b>Backend re-validation on apply.</b> All three tiers re-run server-side; <code>validated_by: "browser"</code> is a latency optimization, never an authority.</td><td>A tampered or stale client could submit rows that never passed CELL checks, or passed against an outdated option set. "We run it again because the browser is not trustworthy."</td></tr>
+    <tr><td class="num">5</td><td><b>org_credentials stays validate-only.</b> No applier until the password field moves to a secrets flow.</td><td>The apply path persists every submitted row into the PII run blob; an applier today would archive plaintext platform passwords in GCS.</td></tr>
+    <tr><td class="num">6</td><td><b>Partial-import refusal.</b> One invalid row → 422, nothing written; a valid subset needs explicit <code>allow_partial: true</code> and returns explicit <code>invalid</code> outcomes.</td><td>The CSVBox pattern of half-applied files nobody chose. The destinations are per-row, not transactional, so what did land is recorded row-by-row in the run blob.</td></tr>
+    <tr><td class="num">7</td><td><b>Idempotency claim.</b> 15-minute Redis SET NX on (tenant, template, key); replay → 409 "This file was already applied."</td><td>Double-click / network-retry double-apply: insert-flavored destinations (locations with blank ids, teammate invites) would create everything twice. Deliberately fail-open — the guard degrades to unprotected, never to an outage.</td></tr>
+    <tr><td class="num">8</td><td><b>Tenant from bearer; <code>?chain=</code> internal-only.</b> Non-internal caller naming another chain → 403.</td><td>The CSVBox-era querystring tenant (<code>csvbox_chain</code> on every dropdown route) let any caller enumerate another chain's locations, franchisees and users by editing a URL parameter.</td></tr>
+    <tr><td class="num">9</td><td><b>v1 option sources not registered.</b> Only the chain-scoped v2 access-level and notification-type sources exist in the registry.</td><td>The v1 access-level endpoint reads a global Firestore collection and "leaks custom roles across tenants"; the admin sheets still on v1 "must move to v2 as part of their migration wave, not carry the leak forward".</td></tr>
+    <tr><td class="num">10</td><td><b>Formula-injection escaping.</b> Sample-CSV cells starting with = + - @ tab or CR are prefixed with <code>'</code> (CWE-1236); the frontend applies the same rule and strips the armor back off on parse.</td><td>A template example executing as a formula when the customer opens the downloaded sample in Excel or Sheets.</td></tr>
+    <tr><td class="num">11</td><td><b>Run blob instead of silence.</b> Every apply writes one JSON document (actor, rows, outcomes, destination response) plus structured log lines; both fail-soft.</td><td>Unanswerable "what did that half-applied file actually do". Counter-scar recorded in the same file: "The blob carries customer PII. The bucket needs a lifecycle rule and restricted access; without those we have moved the reason for leaving CSVBox onto our own infrastructure."</td></tr>
+    <tr><td class="num">12</td><td><b>Cascading store_id.</b> A store id validates only against the platform on the same row; a failed parent suppresses the child's error; cascading columns are exempt from empty-set blocking.</td><td>A DoorDash store id filed under Uber Eats validating because it exists somewhere in the chain — the flat CSVBox dropdown could not express the dependency.</td></tr>
+    <tr><td class="num">13</td><td><b>Wand only when confident.</b> One unambiguous close match (cutoff 0.78, ties suppressed); never for a well-formed wrong value; never when applying would blank a required cell; must turn the whole cell green.</td><td>An auto-fix silently reassigning data to the wrong entity: "guessing a different human is not a fix"; "a 'fix' that guarantees a required-blank error is no fix".</td></tr>
+    <tr><td class="num">14</td><td><b>Existence rule with the exact fix.</b> A no-id row whose name the chain already owns gets <code>already_exists</code> plus "Use id {n}".</td><td>The old endpoint rejected it as <code>duplicate</code> when it was "an update the customer forgot to mark, not a new location" — the late error CSVBox pushed to the destination now lands on the cell, before apply, naming the id.</td></tr>
+    <tr><td class="num">15</td><td><b>Row cap.</b> More than 5,000 rows → 413 "please split it into files of 5000 or fewer".</td><td>A single validate/apply as a denial-of-service vector: every row fans out into option-set lookups and per-row destination writes; "a file this large is a sign the customer wants a different tool".</td></tr>
+  </table></div>
+</section>
+
+<!-- ═══════════════════════ PAGE 13: API ═══════════════════════ -->
+<section id="api">
+  <p class="kick">Reference</p>
+  <h2>API reference</h2>
+  <p>Router prefix <code>/imports</code>, included into <code>data_proxy_router</code> and therefore mounted in every service that includes it — six today: admin, balance, data_proxy, frontend_data, internal and store_uptime. All endpoints require a Firebase bearer token; internal users may add <code>?chain=</code>.</p>
+  <div class="tablewrap"><table>
+    <tr><th>method / path</th><th>what it does</th><th>writes</th></tr>
+    <tr><td class="mono">GET /imports/templates</td><td>Every template, summarized, with <code>apply_supported</code></td><td>nothing</td></tr>
+    <tr><td class="mono">GET /imports/templates/{key}</td><td>Full detail: columns, types, rules, sample rows, <code>validated_by</code> per column</td><td>nothing</td></tr>
+    <tr><td class="mono">GET /imports/templates/{key}/sample.csv</td><td>Example CSV generated from the same declaration the validator reads (formula-escaped)</td><td>nothing</td></tr>
+    <tr><td class="mono">POST /imports/templates/{key}/validate</td><td>Three-tier check; body <code>{rows, headers}</code></td><td>nothing (one warning log line on errors)</td></tr>
+    <tr><td class="mono">POST /imports/templates/{key}/apply</td><td>Re-validate → claim → applier → run blob; body adds <code>idempotency_key, allow_partial, options.demo</code></td><td>destination tables, Redis claim, GCS blob</td></tr>
+  </table></div>
+  <h3>What it refuses</h3>
+  <div class="tablewrap"><table>
+    <tr><th>status</th><th>trigger</th><th>message</th></tr>
+    <tr><td class="num">401</td><td>Missing/invalid bearer</td><td>"Bearer authentication is needed" / "Invalid authentication from Firebase"</td></tr>
+    <tr><td class="num">403</td><td>Caller's UserRole has no org</td><td>"Your account is not attached to an organization."</td></tr>
+    <tr><td class="num">403</td><td>Non-internal caller passes <code>?chain=</code> ≠ own org (your own org's name is a no-op)</td><td>"You can only import into your own organization."</td></tr>
+    <tr><td class="num">404</td><td>Unknown template key</td><td>"No import named {key!r}."</td></tr>
+    <tr><td class="num">400</td><td><code>rows</code> not a list</td><td>—</td></tr>
+    <tr><td class="num">400</td><td>apply on a validate-only template</td><td>"'{label}' can be validated here but is still applied by its own screen."</td></tr>
+    <tr><td class="num">413</td><td>More than MAX_ROWS = 5000</td><td>"please split it into files of 5000 or fewer"</td></tr>
+    <tr><td class="num">422</td><td>Apply gated: blocking error, zero valid rows, or invalid rows without allow_partial</td><td>detail = the full report, so the grid re-seats every error</td></tr>
+    <tr><td class="num">409</td><td>Idempotency claim already held</td><td>"This file was already applied." (echoes the key)</td></tr>
+    <tr><td class="num">502</td><td>Applier raised unexpectedly (an applier's own HTTPException passes through)</td><td>"The import could not be applied. Nothing further was written." (carries run_id)</td></tr>
+  </table></div>
+</section>
+
+<!-- ═══════════════════════ PAGE 14: RUNBOOK ═══════════════════════ -->
+<section id="runbook">
+  <p class="kick">Reference</p>
+  <h2>Runbooks &amp; gotchas</h2>
+  <h3>Local stack</h3>
+  <ul>
+    <li><b>Postgres</b>: dev <code>loop_core</code> is Homebrew PG on <code>:5432</code> — note it sits on a divergent Alembic revision from prod; never assume schema parity.</li>
+    <li><b>Backend</b>: any of the services that mount <code>data_proxy_router</code> serves <code>/imports/*</code>; <code>frontend_data_service</code> runs locally with uvicorn on <code>PORT</code> (default <b>5051</b>). Backend tests need <code>DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib</code> on this Mac.</li>
+    <li><b>Frontend</b>: Vite dev server (default <code>:5173</code>) from the app workspace. <code>tsc</code> carries ~1,460 pre-existing errors — always verify with a differential count, never an absolute one. <code>eslint-plugin-react-hooks</code> is installed but never registered, so rules-of-hooks never runs; run it manually before pushing hook changes. loop-admin's ESLint crashes on every file (ESLint 9 with only a legacy <code>.eslintrc.json</code>) — pre-existing.</li>
+    <li><b>Registry without the stack</b>: <code>import_engine</code> imports without BigQuery/Firebase/Postgres — heavy modules load lazily inside resolvers and appliers — so <code>validator.validate</code> is runnable in a bare venv with option sources patched (that is exactly how the franchise dry run's verbatim JSON on these pages was produced; script: <code>run_validate.py</code>, patches <code>option_sources.resolve</code> with the chain's real values and calls the shipped code untouched).</li>
+  </ul>
+  <h3>Env keys</h3>
+  <div class="tablewrap"><table>
+    <tr><th>key</th><th>default</th><th>used by</th></tr>
+    <tr><td class="k">IMPORT_RUNS_BUCKET</td><td class="mono">loop-imports</td><td>run_log.py — the GCS bucket for run blobs. The blob carries customer PII: the bucket needs a lifecycle rule and restricted access before this is treated as done.</td></tr>
+    <tr><td class="k">PORT</td><td class="mono">5051</td><td>frontend_data_service local uvicorn</td></tr>
+  </table></div>
+  <h3>Seeding the acme_14 test bed</h3>
+  <ul>
+    <li><b>Chain</b>: 1199 / <code>acme_14</code> (<code>is_self_serve = t</code>). Locations: bnames 319905-319908 (pre-existing) plus wizard-created 319909 (Dave's Downtown) and 319910 (Dave's Riverside 2); every bname must have its <code>chain_bname_mapping</code> row (184553-184558 here) or digital-store applies will fail "Store ID not found" while validation passes — the scoping divergence.</li>
+    <li><b>Digital stores</b>: seed placeholder rows shaped like 376157 (name "Acme {platform} Storefront", placeholder bname, empty am_name, <code>unmapped = t</code>, slug <code>{chain}_{store_id}_{platform}</code>). Prod slugs use the 2-letter suffix (<code>_dd/_ue/_gh</code>, verified on chain 787 flynn_group); seeded/wizard rows use the long suffix (<code>_doordash</code>) — do not string-match suffixes across environments.</li>
+    <li><b>POS upload page</b>: needs a FILE_UPLOAD integration — row shaped like <code>external_integrations</code> id 524 (integration_name "Testing 124", entity_type pos, entity_name generic, integration_type <b>file_upload</b>, chain_id 1199). A SCRAPING integration gives the page no upload target.</li>
+    <li><b>Bookkeeping uploads (the freetext trick)</b>: the gate is an <code>accounting_companies</code> row with <code>integration_type = 'freetext'</code> and <code>access = t</code> — row 1357 (<code>acme14-freetext-1</code> / "Acme 14 Books (freetext)", chain_id 1199) is the live example. Without it the GL-codes/classes dialogs have no company to write to.</li>
+    <li><b>Teammates</b>: invited users do NOT appear in Postgres — identity lives in Firebase Auth/Firestore. A 242-table sweep of loop_core for <code>davespizza</code> found zero rows; Postgres only sees a user after per-user config exists, keyed by the Firebase UID as a bare varchar (e.g. <code>user_notification_config.user_id</code>). Do not "verify" a teammate import by querying PG, and do not confuse <code>login_usernames</code> (platform-portal credentials per chain) with app users.</li>
+  </ul>
+  <h3>Cleanup ledger (dev loop_core rows created for these dry runs)</h3>
+  <div class="tablewrap"><table>
+    <tr><th>table</th><th>rows</th><th>note</th></tr>
+    <tr><td class="k">digital_stores</td><td class="mono">376155, 376156, 376157</td><td>seeded 2026-09-07 18:15:47; 376155/376156 then remapped by the one-pass import at 18:17:06</td></tr>
+    <tr><td class="k">external_integrations</td><td class="mono">524</td><td>Generic Upload (file_upload) POS integration for chain 1199</td></tr>
+    <tr><td class="k">accounting_companies</td><td class="mono">1357</td><td>freetext company, the allow-upload gate</td></tr>
+    <tr><td class="k">bnames + chain_bname_mapping</td><td class="mono">319909/184557, 319910/184558</td><td>wizard-created 2026-09-04; shared with the billing handbook's dry runs — delete last, if at all</td></tr>
+    <tr><td class="k">Firebase (org acme_14)</td><td class="mono">priya@davespizza.com</td><td>invited teammate; lives outside Postgres</td></tr>
+  </table></div>
+</section>
+
+<!-- ═══════════════════════ PAGE 15: HISTORY ═══════════════════════ -->
+<section id="history">
+  <p class="kick">Reference</p>
+  <h2>Build history</h2>
+  <p>Built 2026-09-03 → 2026-09-07 in paired worktrees <code>~/wt-import-engine</code> (backend, branch <code>feat/import-engine</code>, 8 commits) and <code>~/wt-import-engine-fe</code> (frontend, 22 commits). PRs: <b>backend#20638</b>, <b>frontend#3937</b>. 31 backend tests green at the initial commit, 36 at the PR head; both frontend swaps verified by differential typecheck (zero new errors).</p>
+  <div class="tablewrap"><table>
+    <tr><th>date</th><th>commit</th><th>what landed</th></tr>
+    <tr><td>Sep 3</td><td class="mono">a2ac597243 (BE)</td><td>The engine: 15 templates (20 sheets consolidated), 9 option sources, 3-tier validator, 5 endpoints, 5 appliers, run blob, structured logs. Also fixes the /bnames/bulk/upload/v2 hasattr-on-dict mapping bug (rail 3).</td></tr>
+    <tr><td>Sep 3</td><td class="mono">604ec15e32 (FE)</td><td>Shared ImportButton/ImportDialog; the six wave-1 CSVBox mounts swapped in loop-frontend and loop-agents; bulk buttons keep exported names so mount sites are unchanged.</td></tr>
+    <tr><td>Sep 3</td><td class="mono">1074ebe723 (FE)</td><td>Every remaining CSVBox mount swapped: waves 2-4 (10 mounts × 2 apps) + all five loop-admin mounts via applyOverride. No CSVBoxButton remains anywhere.</td></tr>
+    <tr><td>Sep 3</td><td class="mono">880f8ba528 (BE)</td><td>Multi-valued text/enum cells; the internal <code>?chain=</code> override.</td></tr>
+    <tr><td>Sep 4</td><td class="mono">2993ec6789 (BE)</td><td>One-click fixes attached to confident validation errors (the wand's server half).</td></tr>
+    <tr><td>Sep 4</td><td class="mono">d1affc23fc (FE)</td><td>Example-spreadsheet schema panel, dropzone-first input.</td></tr>
+    <tr><td>Sep 4</td><td class="mono">f56ad43822 (BE)</td><td>Multi-value cells report every bad entry; the wand goes all-or-nothing (whole cell green or no wand).</td></tr>
+    <tr><td>Sep 4-7</td><td class="mono">5de468cdfd, 053664aeb9, 2f693c90fd (BE) · a91739709f…756abdb82e (FE)</td><td>Fixer resolves whole list cells (replace typos, remove the unmatchable); labeled partial fixes; wand as in-cell icon; tooltip de-overlap; wrong-file rejection at the door; draggable columns; apostrophe-armor strip; Notification Center mount.</td></tr>
+    <tr><td>Sep 7</td><td class="mono">0e1c616e45 (FE)</td><td>Deep-linked /balance/pos/upload gets its own POS settings provider (the dead-page scar).</td></tr>
+    <tr><td>Sep 7</td><td class="mono">4789384916 (BE) · f6ba66b6ef (FE)</td><td>Copy passes: sheet-id provenance stripped from customer-visible descriptions; acronym-preserving titles; pluralized partial-import label. Branch heads at PR time.</td></tr>
+  </table></div>
+  <p>Same-day e2e proof: the digital-stores one-pass on the previous pages is the real 2026-09-07 run against dev loop_core, and the franchise validate JSON is the shipped validator executed on the same chain's data.</p>
+</section>
+
+<!-- ═══ PAGER — leave exactly as-is. Hidden until body.paged; the script
+     rewrites its innerHTML with Prev/Next links on every page change ═══ -->
+<nav class="pager" aria-label="Page navigation"><span id="pager-slot"></span></nav>
+<footer>loop internal · sources: wt-import-engine cloud_endpoints/import_engine/* + api_routers/import_router.py · wt-import-engine-fe packages/shared/src/ImportEngine/* · dev loop_core chain 1199 (acme_14), rows queried live 2026-09-07 · franchise validate JSON produced by executing validator.validate on 2026-09-08 · written 2026-09-08</footer>
+
+<script>
+(function () {
+  var sections = Array.prototype.slice.call(document.querySelectorAll('main section'));
+  var ids = sections.map(function (s) { return s.id; });
+  var navLinks = Array.prototype.slice.call(document.querySelectorAll('nav.side a'));
+  var titles = {};
+  navLinks.forEach(function (a) { titles[a.getAttribute('href').slice(1)] = a.textContent; });
+  var pager = document.querySelector('.pager');
+
+  function show(id) {
+    if (ids.indexOf(id) === -1) id = ids[0];
+    sections.forEach(function (s) { s.classList.toggle('active', s.id === id); });
+    navLinks.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + id); });
+    var i = ids.indexOf(id);
+    var html = '';
+    if (i > 0) html += '<a class="prev" href="#' + ids[i - 1] + '"><span class="dir">&larr; Previous</span><span class="pt">' + titles[ids[i - 1]] + '</span></a>';
+    if (i < ids.length - 1) html += '<a class="next" href="#' + ids[i + 1] + '"><span class="dir">Next &rarr;</span><span class="pt">' + titles[ids[i + 1]] + '</span></a>';
+    pager.innerHTML = html;
+    window.scrollTo(0, 0);
+  }
+
+  function enablePaging() {
+    document.body.classList.add('paged');
+    show((location.hash || '#' + ids[0]).slice(1));
+    window.addEventListener('hashchange', function () { show(location.hash.slice(1)); });
+  }
+
+  // Mermaid renders while every section is still visible; paginate only once
+  // the diagrams are SVGs (a diagram born inside display:none sizes to zero).
+  var started = Date.now();
+  (function waitForMermaid() {
+    var pending = document.querySelectorAll('pre.mermaid:not([data-processed])').length;
+    if (pending === 0 || Date.now() - started > 6000) return enablePaging();
+    setTimeout(waitForMermaid, 150);
+  })();
+})();
+</script>
+</main>
+</div>
+
+</body>
+</html>
