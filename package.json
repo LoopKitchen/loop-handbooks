@@ -1,0 +1,8 @@
+{
+  "name": "loop-handbooks",
+  "private": true,
+  "description": "Static internal handbooks, gated by Loop Google sign-in via edge middleware",
+  "dependencies": {
+    "jose": "5.9.6"
+  }
+}

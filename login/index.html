@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · Loop Handbooks</title>
+<link rel="icon" href="/favicon.ico">
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #fafbfb; color: #13262b; font-family: "IBM Plex Sans", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .card { background: #fff; border: 1px solid #d9e2e3; padding: 40px 44px; text-align: center; max-width: 380px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  p { margin: 0 0 22px; color: #64777b; font-size: 14px; line-height: 1.5; }
+  button { font: inherit; font-weight: 600; background: #196e82; color: #fff; border: none; padding: 11px 22px; border-radius: 8px; cursor: pointer; }
+  button:hover { background: #14596a; }
+  button:focus-visible { outline: 2px solid #196e82; outline-offset: 2px; }
+  .err { color: #a83a2c; font-size: 13px; margin-top: 14px; min-height: 1em; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Loop Handbooks</h1>
+  <p>Internal documentation. Sign in with your Loop Google account to continue.</p>
+  <button id="go">Sign in with Google</button>
+  <div class="err" id="err"></div>
+</div>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js'
+
+const app = initializeApp({"apiKey":"AIzaSyAPstTsXFKtlRyC5XnfE71A1PBwQGPhuNY","authDomain":"arboreal-vision-339901.firebaseapp.com","projectId":"arboreal-vision-339901","storageBucket":"arboreal-vision-339901.appspot.com","messagingSenderId":"983150008719","appId":"1:983150008719:web:094b902dc0e51ab27dd3fa"})
+const auth = getAuth(app)
+await setPersistence(auth, browserLocalPersistence).catch(() => {})
+const err = document.getElementById('err')
+const nextPath = () => {
+  const n = new URLSearchParams(location.search).get('next') || '/'
+  return n.startsWith('/') && !n.startsWith('//') ? n : '/'
+}
+const ALLOWED = ['tryloop.ai', 'loopai.com']
+async function admit(user) {
+  const domain = (user.email || '').split('@')[1]?.toLowerCase() || ''
+  if (!ALLOWED.includes(domain)) {
+    err.textContent = 'Use your Loop account (' + (user.email || 'unknown') + ' is not a Loop address).'
+    await auth.signOut()
+    return
+  }
+  const token = await user.getIdToken(true)
+  // The edge middleware verifies this token's signature server-side on every
+  // request; ~55 min lifetime, after which the gate bounces back here and this
+  // page silently refreshes it via the persisted session below.
+  document.cookie = 'hb_token=' + token + '; Path=/; Max-Age=3300; Secure; SameSite=Lax'
+  location.replace(nextPath())
+}
+onAuthStateChanged(auth, (user) => { if (user) admit(user) })
+getRedirectResult(auth).catch((e) => { err.textContent = e.message || String(e) })
+document.getElementById('go').addEventListener('click', async () => {
+  err.textContent = ''
+  const provider = new GoogleAuthProvider()
+  provider.setCustomParameters({ hd: 'tryloop.ai' })
+  try {
+    await signInWithPopup(auth, provider)
+  } catch (e) {
+    if (String(e?.code).includes('popup')) return signInWithRedirect(auth, provider)
+    err.textContent = e.message || String(e)
+  }
+})
+</script>
+</body>
+</html>
